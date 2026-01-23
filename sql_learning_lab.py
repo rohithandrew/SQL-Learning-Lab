@@ -50,11 +50,14 @@ def db_init(db_name):
     con.commit()
 
 def user_actions(actions):
-    res = con.cursor()
-    res.execute(actions)
-    result = res.fetchall()
-    print(result)
-    con.commit()
+    try:
+        res = con.cursor()
+        res.execute(actions)
+        result = res.fetchall()
+        print(result)
+        con.commit()
+    except Exception as e:
+        print(f"Error executing query: {e}")
 
 def check_db_exists(db_name):
     res = con.cursor()
@@ -74,9 +77,9 @@ while True:
     print("1. New User? Register")
     print("2. Already have an account? Login")
 
-    choice = int(input("Enter your choice (1 or 2): "))
+    choice = input("Enter your choice (1 or 2): ")
 
-    if choice == 1:
+    if choice == "1":
         print("Register Now!")
 
         while True:
@@ -93,7 +96,7 @@ while True:
                 register(username.lower(), password)
                 break
 
-    elif choice == 2:
+    elif choice == "2":
 
         print("Login Now!")
 
@@ -113,6 +116,8 @@ while True:
                     break
                 else:
                     print("Incorrect password! Please try again.")
+    else:
+        print("Invalid choice! Please enter 1 or 2.")
 
     if exit_main_loop:
         break
@@ -133,7 +138,7 @@ if not check_db_exists(username.lower() + "_db"):
             print("Exiting the program.")
             break
         result = user_actions(action)
-        
+
 else:
     db_name = username.lower() + "_db"
     print(f"Using existing database: {db_name}")
