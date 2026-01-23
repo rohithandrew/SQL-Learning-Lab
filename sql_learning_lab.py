@@ -43,13 +43,11 @@ def check_username(username):
     else:
         return False
     
-def db_init(db_name, table_name):
+def db_init(db_name):
     res = con.cursor()
     res.execute(f"create database if not exists `{db_name}`")
     res.execute(f"use `{db_name}`")
-    res.execute(f"create table if not exists `{table_name}` (sno int auto_increment primary key, name varchar(50))")
     con.commit()
-    print(f"Database '{db_name}' and table '{table_name}' initialized.")
 
 def user_actions(actions):
     res = con.cursor()
@@ -57,6 +55,15 @@ def user_actions(actions):
     result = res.fetchall()
     print(result)
     con.commit()
+
+def check_db_exists(db_name):
+    res = con.cursor()
+    res.execute("SHOW DATABASES")
+    databases = res.fetchall()
+    for db in databases:
+        if db[0] == db_name:
+            return True
+    return False
 
 
 while True:
@@ -110,13 +117,35 @@ while True:
     if exit_main_loop:
         break
 
-db_name = input("Enter name for your database: ")
-table_name = input("Enter name for your table: ")
-db_init(db_name, table_name)
+if not check_db_exists(username.lower() + "_db"):
+    db_name = username.lower() + "_db"
+    print(f"Initializing database: {db_name}")
+    db_init(db_name)
+    print(f"Database '{db_name}' initialized.")
 
-while True:
-    action = input("Enter your SQL action (or type 'exit' to quit): ")
-    if action.lower() == 'exit':
-        print("Exiting the program.")
-        break
-    result = user_actions(action)
+    while True:
+        blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
+        action = input("Enter your SQL action (or type 'exit' to quit): ")
+        if any (word in action.upper() for word in blocked_words):
+            print("This action is not allowed.")
+            continue
+        if action.lower() == 'exit':
+            print("Exiting the program.")
+            break
+        result = user_actions(action)
+        
+else:
+    db_name = username.lower() + "_db"
+    print(f"Using existing database: {db_name}")
+    db_init(db_name)
+
+    while True:
+        blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
+        action = input("Enter your SQL action (or type 'exit' to quit): ")
+        if any (word in action.upper() for word in blocked_words):
+            print("This action is not allowed.")
+            continue
+        if action.lower() == 'exit':
+            print("Exiting the program.")
+            break
+        result = user_actions(action)
