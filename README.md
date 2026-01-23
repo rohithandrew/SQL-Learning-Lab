@@ -2,7 +2,7 @@
 
 A command-line application that lets users register and log in using MySQL as the backend, securely loading credentials from a `.env` file via `python-dotenv`. It supports creating a database and table dynamically and running SQL queries interactively.
 
-***
+
 
 ## Features
 
@@ -13,7 +13,7 @@ A command-line application that lets users register and log in using MySQL as th
 - **Uses `mysql-connector-python`** for MySQL connection.
 - Simple, menu-driven CLI interface.
 
-***
+
 
 ## Setup
 
@@ -41,7 +41,7 @@ A command-line application that lets users register and log in using MySQL as th
    DB_NAME=your_default_database
    ```
 
-***
+
 
 ## Usage
 
@@ -57,7 +57,7 @@ python your_script_name.py
 - Execute SQL queries interactively.
 - Type `'exit'` to quit.
 
-***
+
 
 ## Security Notes
 
@@ -65,7 +65,7 @@ python your_script_name.py
 - Keep your `.env` file out of version control (add to `.gitignore`).
 - Use a MySQL user with restricted privileges, not root.
 
-***
+
 
 ## Future Improvements
 
@@ -74,7 +74,7 @@ python your_script_name.py
 - Role-based access control.
 - Develop a GUI or web interface.
 
-***
+
 
 ## License
 
