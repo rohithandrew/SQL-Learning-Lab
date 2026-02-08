@@ -1,6 +1,9 @@
 import os
 from dotenv import load_dotenv
 import mysql.connector
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import uvicorn
 
 load_dotenv()
 
@@ -10,6 +13,54 @@ con = mysql.connector.connect(
     password = os.getenv('DB_PASS'),
     database = os.getenv('DB_NAME')
 )
+
+app = FastAPI(title="SQL Learning Lab", version="1.0.0")
+
+class UserCredentials(BaseModel):
+    username: str
+    password: str
+
+class SQLQuery(BaseModel):
+    query: str
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to SQL Learning Lab"}
+
+@app.post("/register")
+def register_user(user: UserCredentials):
+    if check_username(user.username.lower()):
+        raise HTTPException(status_code=400, detail="Username already exists!")
+    register(user.username.lower(), user.password)
+    return {"message": "Registration Successful!"}
+
+@app.post("/login")
+def login_user(user: UserCredentials):
+    if not check_username(user.username.lower()):
+        raise HTTPException(status_code=401, detail="Username does not exist! Please register first.")
+    
+    if check_login(user.username.lower(), user.password):
+        return {"message": "Login Successful!", "username": user.username.lower()}
+    else:
+        raise HTTPException(status_code=401, detail="Incorrect password!")
+
+@app.post("/execute-sql/{username}")
+def execute_sql(username: str, query: SQLQuery):
+    blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
+    if any(word in query.query.upper() for word in blocked_words):
+        raise HTTPException(status_code=403, detail="This action is not allowed.")
+    
+    db_name = username.lower() + "_db"
+    db_init(db_name)
+
+    try:
+        res = con.cursor()
+        res.execute(query.query)
+        result = res.fetchall()
+        con.commit()
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error executing query: {str(e)}")
 
 def register(username, password):
     res = con.cursor()
@@ -49,16 +100,6 @@ def db_init(db_name):
     res.execute(f"use `{db_name}`")
     con.commit()
 
-def user_actions(actions):
-    try:
-        res = con.cursor()
-        res.execute(actions)
-        result = res.fetchall()
-        print(result)
-        con.commit()
-    except Exception as e:
-        print(f"Error executing query: {e}")
-
 def check_db_exists(db_name):
     res = con.cursor()
     res.execute("SHOW DATABASES")
@@ -68,89 +109,5 @@ def check_db_exists(db_name):
             return True
     return False
 
-
-while True:
-
-    exit_main_loop = False
-
-    print("Choose Action!")
-    print("1. New User? Register")
-    print("2. Already have an account? Login")
-
-    choice = input("Enter your choice (1 or 2): ")
-
-    if choice == "1":
-        print("Register Now!")
-
-        while True:
-        
-            username = input("Enter your username: ")
-            password = input("Enter your password: ")
-
-            if check_login(username.lower(), password):
-                print("You are already registered! Please login.")
-                break
-            elif check_username(username.lower()):
-                print("Username already exists!")
-            else:
-                register(username.lower(), password)
-                break
-
-    elif choice == "2":
-
-        print("Login Now!")
-
-        while True:
-
-            username = input("Enter your username: ")
-            password = input("Enter your password: ")
-
-            if not check_username(username.lower()):
-                print("Username does not exist! Please register first.")
-                break
-            else:
-
-                if check_login(username.lower(), password):
-                    print("Login Successful!")
-                    exit_main_loop = True
-                    break
-                else:
-                    print("Incorrect password! Please try again.")
-    else:
-        print("Invalid choice! Please enter 1 or 2.")
-
-    if exit_main_loop:
-        break
-
-if not check_db_exists(username.lower() + "_db"):
-    db_name = username.lower() + "_db"
-    print(f"Initializing database: {db_name}")
-    db_init(db_name)
-    print(f"Database '{db_name}' initialized.")
-
-    while True:
-        blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
-        action = input("Enter your SQL action (or type 'exit' to quit): ")
-        if any (word in action.upper() for word in blocked_words):
-            print("This action is not allowed.")
-            continue
-        if action.lower() == 'exit':
-            print("Exiting the program.")
-            break
-        result = user_actions(action)
-
-else:
-    db_name = username.lower() + "_db"
-    print(f"Using existing database: {db_name}")
-    db_init(db_name)
-
-    while True:
-        blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
-        action = input("Enter your SQL action (or type 'exit' to quit): ")
-        if any (word in action.upper() for word in blocked_words):
-            print("This action is not allowed.")
-            continue
-        if action.lower() == 'exit':
-            print("Exiting the program.")
-            break
-        result = user_actions(action)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
