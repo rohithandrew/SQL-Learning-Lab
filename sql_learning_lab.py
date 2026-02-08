@@ -52,7 +52,13 @@ def login_user(user: UserCredentials):
         raise HTTPException(status_code=401, detail="Incorrect password!")
 
 @app.post("/execute-sql/{username}")
-def execute_sql(username: str, query: SQLQuery):
+def execute_sql(username: str, query: SQLQuery, credentials: UserCredentials):
+    if not check_login(credentials.username.lower(), credentials.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials!")
+    
+    if credentials.username.lower() != username.lower():
+        raise HTTPException(status_code=401, detail="Username mismatch!")
+    
     blocked_words = ['SHOW DATABASES', 'SHOW SCHEMAS', 'USE ', 'DROP DATABASE', 'CREATE DATABASE']
     if any(word in query.query.upper() for word in blocked_words):
         raise HTTPException(status_code=403, detail="This action is not allowed.")
